@@ -14,6 +14,8 @@ import (
 	"github.com/hw-operator/pkg/apis"
 	"github.com/hw-operator/pkg/controller"
 	"github.com/hw-operator/version"
+	routev1 "github.com/openshift/api/route/v1"
+
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
@@ -108,6 +110,11 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+	// Adding the routev1
+	if err := routev1.Install(mgr.GetScheme()); err != nil {
+	log.Error(err, "")
+	os.Exit(1)
+  }
 
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
