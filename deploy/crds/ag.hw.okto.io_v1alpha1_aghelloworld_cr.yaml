@@ -1,0 +1,7 @@
+apiVersion: ag.hw.okto.io/v1alpha1
+kind: AgHelloWorld
+metadata:
+  name: example-aghelloworld
+spec:
+  # Add fields here
+  size: 3
