@@ -6,6 +6,7 @@ import (
 	agv1alpha1 "github.com/hw-operator/pkg/apis/ag/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	"github.com/nlopes/slack"
 	"context"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +27,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_aghelloworld")
+const hwFinalizer = "finalizer.ag.hw.okto.io"
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -87,7 +89,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 
 // Reconcile loop resources managers functions
-func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	deployment := &appsv1.Deployment{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, deployment)
 	if err != nil && errors.IsNotFound(err) {
@@ -110,7 +112,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 	return nil, nil
   }
 
-  func (r *Reconcile<YOUR-NAME>HelloWorld) manageRoute(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+  func (r *ReconcileAg23HelloWorld) manageRoute(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	//Check if route already exists, if not create a new one
 	route := &routev1.Route{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, route)
@@ -133,7 +135,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 	}
 	return nil, nil
   }
-  func (r *Reconcile<YOUR-NAME>HelloWorld) manageService(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+  func (r *ReconcileAgHelloWorld) manageService(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	service := &corev1.Service{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, service)
 	if err != nil && errors.IsNotFound(err) {
@@ -167,7 +169,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 	return nil, nil
   }
 
-  func (r *Reconcile<YOUR-NAME>HelloWorld) manageConfigMap(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+  func (r *ReconcileAgHelloWorld) manageConfigMap(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	cm := &corev1.ConfigMap{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, cm)
 	if err != nil && errors.IsNotFound(err) {
@@ -208,7 +210,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
   
 
      // Resources creation functions
-	 func (r *Reconcile<YOUR-NAME>HelloWorld) deploymentForWebServer(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld) (*appsv1.Deployment, error) {
+	 func (r *ReconcileAgHelloWorld) deploymentForWebServer(hw *<agv1alpha1.AgHelloWorld) (*appsv1.Deployment, error) {
 		var replicas int32
 		replicas = 1
 		labels := map[string]string{
@@ -273,7 +275,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 	  }
 	
 
-	  func (r *Reconcile<YOUR-NAME>HelloWorld) routeForWebServer(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld) (*routev1.Route, error) {
+	  func (r *ReconcileAgHelloWorld) routeForWebServer(hw *agv1alpha1.AgHelloWorldHelloWorld) (*routev1.Route, error) {
 		labels := map[string]string{
 		  "app": hw.Name,
 		}
@@ -300,7 +302,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 		return route, nil
 	  }
 	
-	  func (r *Reconcile<YOUR-NAME>HelloWorld) configMapForWebServer(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld) (*corev1.ConfigMap, error) {
+	  func (r *ReconcileAgHelloWorld) configMapForWebServer(hw *agv1alpha1.AgHelloWorldHelloWorld) (*corev1.ConfigMap, error) {
 		labels := map[string]string{
 		  "app": hw.Name,
 		}
@@ -321,7 +323,7 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) manageDeployment(hw *<YOUR-NAME>v1alpha
 	  }
 	
 	
-	  func (r *Reconcile<YOUR-NAME>HelloWorld) syncConfigMapForWebServer(hw *<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld, cm *corev1.ConfigMap) (syncRequired bool, err error) {
+	  func (r *ReconcileAgHelloWorld) syncConfigMapForWebServer(hw *agv1alpha1.AgHelloWorld, cm *corev1.ConfigMap) (syncRequired bool, err error) {
 		if hw.Spec.Message != cm.Data["index.html"] {
 		  log.Info("Message in CR spec not the same as in CM, gonna update website cm")
 		  cm.Data["index.html"] = hw.Spec.Message
@@ -353,12 +355,12 @@ type ReconcileAgHelloWorld struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *Reconcile<YOUR-NAME>HelloWorld) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileAgHelloWorld) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling HelloWorld")
 
 	// Fetch the HelloWorld instance
-	hw := &<YOUR-NAME>v1alpha1.<YOUR-NAME>HelloWorld{}
+	hw := &agv1alpha1.AgHelloWorld{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, hw)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -434,3 +436,111 @@ func (r *Reconcile<YOUR-NAME>HelloWorld) Reconcile(request reconcile.Request) (r
 	}
 	return reconcile.Result{}, nil
 }
+
+
+
+
+
+
+func (r *ReconcileAg23HelloWorld) initFinalization(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) error {
+	isHwMarkedToBeDeleted := hw.GetDeletionTimestamp() != nil
+	if isHwMarkedToBeDeleted {
+	  if contains(hw.GetFinalizers(), hwFinalizer) {
+		// Run finalization logic for hwFinalizer. If the
+		// finalization logic fails, don't remove the finalizer so
+		// that we can retry during the next reconciliation.
+		if err := r.finalizeHw(hw, reqLogger); err != nil {
+		  reqLogger.Error(err, "Failed to run finalizer")
+		  return err
+		}
+		// Remove hwFinalizer. Once all finalizers have been
+		// removed, the object will be deleted.
+		hw.SetFinalizers(remove(hw.GetFinalizers(), hwFinalizer))
+		err := r.client.Update(context.TODO(), hw)
+		if err != nil {
+		  reqLogger.Error(err, "Failed to delete finalizer")
+		  return err
+		}
+	  }
+	  return nil
+	}
+  
+	// Add finalizer for this CR
+	if !contains(hw.GetFinalizers(), hwFinalizer) {
+	  if err := r.addFinalizer(hw, reqLogger); err != nil {
+		reqLogger.Error(err, "Failed to add finalizer")
+		return err
+	  }
+	}
+	return nil
+  }
+
+
+  func (r *ReconcileAgHelloWorld) finalizeHw(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger, ) error {
+	slackToken, err := getSlackToken()
+	if err != nil {
+	  reqLogger.Error(err, "Gonna skip finzalize, the error during getting slack token")
+	  return nil
+	}
+	api := slack.New(slackToken)
+	attachment := slack.Attachment{
+	  Pretext: "Hello World Operator Finalizer",
+	  Color:   "danger",
+	  Footer:  "HelloWorld Operator Finalizer",
+	  Title:   fmt.Sprintf("WebSite %s gonna be removed from OpenShift Cluster", hw.Name),
+	}
+	channelID, timestamp, err := api.PostMessage("CQ5EXBM8C", slack.MsgOptionAttachments(attachment))
+	if err != nil {
+	  reqLogger.Error(err, "Failed to send Slack message")
+	}
+	fmt.Printf("Message successfully sent to channel %s at %s", channelID, timestamp)
+	reqLogger.Info(fmt.Sprintf("Successfully finalized HW: %s", hw.Name))
+	return nil
+}
+
+
+
+
+func (r *ReconcileAgHelloWorld) addFinalizer(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) error {
+	reqLogger.Info("Adding Finalizer for the Memcached")
+	hw.SetFinalizers(append(hw.GetFinalizers(), hwFinalizer))
+	// Update CR
+	err := r.client.Update(context.TODO(), hw)
+	if err != nil {
+	  reqLogger.Error(err, "Failed to update Rdbc with finalizer")
+	  return err
+	}
+	return nil
+  }
+
+
+
+  func getSlackToken() (string, error) {
+	ns, found := os.LookupEnv("SLACK_TOKEN")
+	if !found {
+	  return "", fmt.Errorf("%s must be set", "SLACK_TOKEN")
+	}
+	return ns, nil
+  }
+
+
+
+  func contains(list []string, s string) bool {
+	for _, v := range list {
+	  if v == s {
+		return true
+	  }
+	}
+	return false
+  }
+
+
+
+  func remove(list []string, s string) []string {
+	for i, v := range list {
+	  if v == s {
+		list = append(list[:i], list[i+1:]...)
+	  }
+	}
+	return list
+  }
