@@ -4,4 +4,4 @@ metadata:
   name: example-aghelloworld
 spec:
   # Add fields here
-  size: 3
+  message: 'hello world'

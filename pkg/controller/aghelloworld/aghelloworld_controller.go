@@ -5,11 +5,9 @@ import (
 
 	agv1alpha1 "github.com/hw-operator/pkg/apis/ag/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
 	"github.com/nlopes/slack"
-	"context"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	routev1 "github.com/openshift/api/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"fmt"
+	"os"
+	"github.com/go-logr/logr"
+
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -112,7 +113,7 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
 	return nil, nil
   }
 
-  func (r *ReconcileAg23HelloWorld) manageRoute(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+func (r *ReconcileAgHelloWorld) manageRoute(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	//Check if route already exists, if not create a new one
 	route := &routev1.Route{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, route)
@@ -135,7 +136,7 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
 	}
 	return nil, nil
   }
-  func (r *ReconcileAgHelloWorld) manageService(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+func (r *ReconcileAgHelloWorld) manageService(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	service := &corev1.Service{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, service)
 	if err != nil && errors.IsNotFound(err) {
@@ -169,7 +170,29 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
 	return nil, nil
   }
 
-  func (r *ReconcileAgHelloWorld) manageConfigMap(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
+func (r *ReconcileAgHelloWorld) serviceForWebServer(hw *agv1alpha1.AgHelloWorld, service *corev1.Service) error {
+	labels := map[string]string{
+	  "app": hw.Name,
+	}
+	ports := []corev1.ServicePort{
+	  {
+		Name: "https",
+		Port: 8080,
+	  },
+	}
+	service.ObjectMeta.Name = hw.Name
+	service.ObjectMeta.Namespace = hw.Namespace
+	service.ObjectMeta.Labels = labels
+	service.Spec.Selector = map[string]string{"app": hw.Name}
+	service.Spec.Ports = ports
+	if err := controllerutil.SetControllerReference(hw, service, r.scheme); err != nil {
+	  log.Error(err, "Error set controller reference for server service")
+	  return err
+	}
+	return nil
+  }
+
+func (r *ReconcileAgHelloWorld) manageConfigMap(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) (*reconcile.Result, error) {
 	cm := &corev1.ConfigMap{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hw.Name, Namespace: hw.Namespace}, cm)
 	if err != nil && errors.IsNotFound(err) {
@@ -210,7 +233,7 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
   
 
      // Resources creation functions
-	 func (r *ReconcileAgHelloWorld) deploymentForWebServer(hw *<agv1alpha1.AgHelloWorld) (*appsv1.Deployment, error) {
+func (r *ReconcileAgHelloWorld) deploymentForWebServer(hw *agv1alpha1.AgHelloWorld) (*appsv1.Deployment, error) {
 		var replicas int32
 		replicas = 1
 		labels := map[string]string{
@@ -275,7 +298,7 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
 	  }
 	
 
-	  func (r *ReconcileAgHelloWorld) routeForWebServer(hw *agv1alpha1.AgHelloWorldHelloWorld) (*routev1.Route, error) {
+func (r *ReconcileAgHelloWorld) routeForWebServer(hw *agv1alpha1.AgHelloWorld) (*routev1.Route, error) {
 		labels := map[string]string{
 		  "app": hw.Name,
 		}
@@ -302,7 +325,7 @@ func (r *ReconcileAgHelloWorld) manageDeployment(hw *agv1alpha1.AgHelloWorld, re
 		return route, nil
 	  }
 	
-	  func (r *ReconcileAgHelloWorld) configMapForWebServer(hw *agv1alpha1.AgHelloWorldHelloWorld) (*corev1.ConfigMap, error) {
+func (r *ReconcileAgHelloWorld) configMapForWebServer(hw *agv1alpha1.AgHelloWorld) (*corev1.ConfigMap, error) {
 		labels := map[string]string{
 		  "app": hw.Name,
 		}
@@ -442,7 +465,7 @@ func (r *ReconcileAgHelloWorld) Reconcile(request reconcile.Request) (reconcile.
 
 
 
-func (r *ReconcileAg23HelloWorld) initFinalization(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) error {
+func (r *ReconcileAgHelloWorld) initFinalization(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) error {
 	isHwMarkedToBeDeleted := hw.GetDeletionTimestamp() != nil
 	if isHwMarkedToBeDeleted {
 	  if contains(hw.GetFinalizers(), hwFinalizer) {
@@ -489,7 +512,7 @@ func (r *ReconcileAg23HelloWorld) initFinalization(hw *agv1alpha1.AgHelloWorld, 
 	  Footer:  "HelloWorld Operator Finalizer",
 	  Title:   fmt.Sprintf("WebSite %s gonna be removed from OpenShift Cluster", hw.Name),
 	}
-	channelID, timestamp, err := api.PostMessage("CQ5EXBM8C", slack.MsgOptionAttachments(attachment))
+	channelID, timestamp, err := api.PostMessage("DTJS5QXUL", slack.MsgOptionAttachments(attachment))
 	if err != nil {
 	  reqLogger.Error(err, "Failed to send Slack message")
 	}
@@ -497,10 +520,6 @@ func (r *ReconcileAg23HelloWorld) initFinalization(hw *agv1alpha1.AgHelloWorld, 
 	reqLogger.Info(fmt.Sprintf("Successfully finalized HW: %s", hw.Name))
 	return nil
 }
-
-
-
-
 func (r *ReconcileAgHelloWorld) addFinalizer(hw *agv1alpha1.AgHelloWorld, reqLogger logr.Logger) error {
 	reqLogger.Info("Adding Finalizer for the Memcached")
 	hw.SetFinalizers(append(hw.GetFinalizers(), hwFinalizer))
@@ -515,7 +534,7 @@ func (r *ReconcileAgHelloWorld) addFinalizer(hw *agv1alpha1.AgHelloWorld, reqLog
 
 
 
-  func getSlackToken() (string, error) {
+func getSlackToken() (string, error) {
 	ns, found := os.LookupEnv("SLACK_TOKEN")
 	if !found {
 	  return "", fmt.Errorf("%s must be set", "SLACK_TOKEN")
@@ -525,7 +544,7 @@ func (r *ReconcileAgHelloWorld) addFinalizer(hw *agv1alpha1.AgHelloWorld, reqLog
 
 
 
-  func contains(list []string, s string) bool {
+func contains(list []string, s string) bool {
 	for _, v := range list {
 	  if v == s {
 		return true
@@ -536,11 +555,11 @@ func (r *ReconcileAgHelloWorld) addFinalizer(hw *agv1alpha1.AgHelloWorld, reqLog
 
 
 
-  func remove(list []string, s string) []string {
+func remove(list []string, s string) []string {
 	for i, v := range list {
 	  if v == s {
 		list = append(list[:i], list[i+1:]...)
 	  }
 	}
 	return list
-  }
+}
